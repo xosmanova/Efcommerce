@@ -50,12 +50,15 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-slate-800 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} ShopHub Store. All rights reserved.</p>
-          <p className="flex items-center gap-1 mt-2 sm:mt-0">
-            Engineered with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> Onion Architecture
-          </p>
+          <p>Â© 2026 ShopHub E-Commerce. All rights reserved.</p>
+          <div className="flex items-center gap-4 mt-2 sm:mt-0">
+            <span className="hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
+            <span>â€¢</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Terms of Service</span>
+          </div>
         </div>
       </div>
     </footer>
   );
 };
+
