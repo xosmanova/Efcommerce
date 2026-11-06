@@ -74,6 +74,8 @@ public class OrderService : IOrderService
 
             decimal totalAmount = 0;
 
+            var lowStockAlerts = new List<(string Name, int RemainingStock)>();
+
             // 2. Validate stock, decrement, and snapshot items
             foreach (var cartItem in cart.Items.ToList())
             {
@@ -95,6 +97,11 @@ public class OrderService : IOrderService
                 // Decrement stock
                 product.StockQuantity -= cartItem.Quantity;
                 _unitOfWork.Repository<Product>().Update(product);
+
+                if (product.StockQuantity <= 5)
+                {
+                    lowStockAlerts.Add((product.Name, product.StockQuantity));
+                }
 
                 // Snapshot unit price (discount price if active, otherwise standard price)
                 var unitPrice = product.DiscountPrice ?? product.Price;
@@ -155,6 +162,30 @@ public class OrderService : IOrderService
             order.TotalAmount = Math.Max(0, totalAmount - discountAmount);
 
             await _unitOfWork.Repository<Order>().AddAsync(order, cancellationToken);
+
+            // Record Live Activity: New Order
+            var orderActivity = new ActivityLog
+            {
+                Type = "order",
+                Title = "Yeni sifariş daxil oldu",
+                Description = $"Sifariş #{order.OrderNumber} • Məbləğ: ₼{order.TotalAmount:F2}",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _unitOfWork.Repository<ActivityLog>().AddAsync(orderActivity, cancellationToken);
+
+            // Record Live Activity: Low Stock Alerts
+            foreach (var alert in lowStockAlerts)
+            {
+                var stockActivity = new ActivityLog
+                {
+                    Type = "stock",
+                    Title = "Anbar xəbərdarlığı",
+                    Description = $"{alert.Name} stoku azalıb ({alert.RemainingStock} ədəd qalıb).",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _unitOfWork.Repository<ActivityLog>().AddAsync(stockActivity, cancellationToken);
+            }
+
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
             // Send order confirmation email in background
@@ -356,6 +387,14 @@ public class OrderService : IOrderService
                 order.Status = newStatus;
                 _unitOfWork.Repository<Order>().Update(order);
 
+                await _unitOfWork.Repository<ActivityLog>().AddAsync(new ActivityLog
+                {
+                    Type = "order",
+                    Title = "Sifariş ləğv edildi",
+                    Description = $"Sifariş #{order.OrderNumber} ləğv edildi.",
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+
                 await _unitOfWork.CommitTransactionAsync(cancellationToken);
             }
             catch
@@ -368,6 +407,38 @@ public class OrderService : IOrderService
         {
             order.Status = newStatus;
             _unitOfWork.Repository<Order>().Update(order);
+
+            if (newStatus == OrderStatus.Confirmed)
+            {
+                await _unitOfWork.Repository<ActivityLog>().AddAsync(new ActivityLog
+                {
+                    Type = "payment",
+                    Title = "Ödəniş təsdiqləndi",
+                    Description = $"Sifariş #{order.OrderNumber} üçün ödəniş uğurla təsdiqləndi.",
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+            else if (newStatus == OrderStatus.Shipped)
+            {
+                await _unitOfWork.Repository<ActivityLog>().AddAsync(new ActivityLog
+                {
+                    Type = "order",
+                    Title = "Sifariş göndərildi",
+                    Description = $"Sifariş #{order.OrderNumber} kuryer çatdırılmasına verildi.",
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+            else if (newStatus == OrderStatus.Delivered)
+            {
+                await _unitOfWork.Repository<ActivityLog>().AddAsync(new ActivityLog
+                {
+                    Type = "order",
+                    Title = "Sifariş çatdırıldı",
+                    Description = $"Sifariş #{order.OrderNumber} müştəriyə təhvil verildi.",
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 

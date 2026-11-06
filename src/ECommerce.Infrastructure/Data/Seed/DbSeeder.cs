@@ -29,7 +29,7 @@ public static class DbSeeder
             await SeedUsersAsync(userManager, logger);
             await SeedCategoriesAsync(context, logger);
             await SeedProductsAsync(context, logger);
-            await SeedOrdersAsync(context, userManager, logger);
+            // await SeedOrdersAsync(context, userManager, logger); // Disabled: Fresh database starts with 0 orders
             await SeedReviewsAsync(context, userManager, logger);
             await SeedCouponsAsync(context, logger);
         }
@@ -40,12 +40,12 @@ public static class DbSeeder
         }
     }
 
-    private static async Task MigrateDatabaseAsync(
+        private static async Task MigrateDatabaseAsync(
         AppDbContext context,
         IHostEnvironment? environment,
         ILogger? logger)
     {
-        if (environment != null && environment.IsDevelopment())
+        try
         {
             var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
             if (pendingMigrations.Any())
@@ -55,7 +55,20 @@ public static class DbSeeder
                 logger?.LogInformation("Database migrations applied successfully.");
             }
         }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "MigrateAsync failed. Attempting EnsureCreatedAsync...");
+            try
+            {
+                await context.Database.EnsureCreatedAsync();
+            }
+            catch (Exception ex2)
+            {
+                logger?.LogError(ex2, "EnsureCreatedAsync also failed.");
+            }
+        }
     }
+    
 
     private static async Task SeedRolesAndPermissionsAsync(
         RoleManager<AppRole> roleManager,
@@ -404,3 +417,5 @@ public static class DbSeeder
         logger?.LogInformation("Seeded {Count} coupons successfully.", coupons.Count);
     }
 }
+
+

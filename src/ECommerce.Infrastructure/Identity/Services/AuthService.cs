@@ -75,6 +75,23 @@ public class AuthService : IAuthService
 
         await _userManager.AddToRoleAsync(user, defaultRole);
 
+        // Record Live Activity: New User Registration
+        try
+        {
+            _context.ActivityLogs.Add(new ActivityLog
+            {
+                Type = "user",
+                Title = "Yeni istifadəçi qeydiyyatı",
+                Description = $"{user.FirstName} {user.LastName} platformada qeydiyyatdan keçdi.",
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            // Logging failure should not break user registration
+        }
+
         // Send welcome email notification in the background
         _ = Task.Run(() => _emailService.SendWelcomeEmailAsync(user.Email!, $"{user.FirstName} {user.LastName}".Trim(), CancellationToken.None));
 

@@ -15,13 +15,16 @@ public class AdminUsersController : BaseApiController
 {
     private readonly IUserService _userService;
     private readonly IValidator<UpdateUserRolesDto> _updateUserRolesValidator;
+    private readonly IValidator<CreateAdminUserDto> _createAdminUserValidator;
 
     public AdminUsersController(
         IUserService userService,
-        IValidator<UpdateUserRolesDto> updateUserRolesValidator)
+        IValidator<UpdateUserRolesDto> updateUserRolesValidator,
+        IValidator<CreateAdminUserDto> createAdminUserValidator)
     {
         _userService = userService;
         _updateUserRolesValidator = updateUserRolesValidator;
+        _createAdminUserValidator = createAdminUserValidator;
     }
 
     /// <summary>
@@ -98,5 +101,42 @@ public class AdminUsersController : BaseApiController
         var result = await _userService.UpdateUserStatusAsync(id, dto, cancellationToken);
         var message = dto.IsLocked ? "User has been locked." : "User has been unlocked.";
         return Success(result, message);
+    }
+
+    /// <summary>
+    /// Creates a new user with an assigned role (SuperAdmin, Admin, Customer).
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<UserManagementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateUser(
+        [FromBody] CreateAdminUserDto dto,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await _createAdminUserValidator.ValidateAsync(dto, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new AppValidationException(validationResult.Errors.Select(e => e.ErrorMessage).ToList());
+        }
+
+        var result = await _userService.CreateUserAsync(dto, cancellationToken);
+        return Success(result, "İstifadəçi uğurla yaradıldı.");
+    }
+
+    /// <summary>
+    /// Deletes a user account. Prevents deleting self or the sole SuperAdmin.
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteUser(Guid id, CancellationToken cancellationToken)
+    {
+        await _userService.DeleteUserAsync(id, cancellationToken);
+        return Success<object>(null!, "İstifadəçi uğurla silindi.");
     }
 }

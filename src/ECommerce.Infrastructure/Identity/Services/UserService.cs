@@ -307,6 +307,98 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<UserManagementDto> CreateUserAsync(
+        CreateAdminUserDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var existingUser = await _userManager.FindByEmailAsync(dto.Email.Trim());
+        if (existingUser != null)
+        {
+            throw new ValidationException("Bu e-poçt ünvanı ilə artıq qeydiyyatdan keçmiş istifadəçi mövcuddur.");
+        }
+
+        var roleName = string.IsNullOrWhiteSpace(dto.Role) ? "Customer" : dto.Role.Trim();
+        if (!await _roleManager.RoleExistsAsync(roleName))
+        {
+            await _roleManager.CreateAsync(new AppRole(roleName, $"{roleName} role"));
+        }
+
+        var user = new AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = dto.Email.Trim(),
+            Email = dto.Email.Trim(),
+            FirstName = dto.FirstName.Trim(),
+            LastName = dto.LastName.Trim(),
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var createResult = await _userManager.CreateAsync(user, dto.Password);
+        if (!createResult.Succeeded)
+        {
+            throw new ValidationException(createResult.Errors.Select(e => e.Description).ToList());
+        }
+
+        await _userManager.AddToRoleAsync(user, roleName);
+
+        var roles = (await _userManager.GetRolesAsync(user)).OrderBy(r => r).ToList();
+        var permissions = await GetPermissionsForRolesAsync(roles);
+
+        return new UserManagementDto
+        {
+            Id = user.Id,
+            Email = user.Email ?? string.Empty,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Roles = roles,
+            Permissions = permissions,
+            IsLockedOut = false,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public async Task DeleteUserAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null)
+        {
+            throw new NotFoundException($"User with ID '{id}' was not found.");
+        }
+
+        var currentUserId = _currentUserService.UserId;
+        if (!string.IsNullOrEmpty(currentUserId) &&
+            string.Equals(currentUserId, user.Id.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ValidationException("Öz hesabınızı silə bilməzsiniz.");
+        }
+
+        if (await _userManager.IsInRoleAsync(user, "SuperAdmin"))
+        {
+            var superAdmins = await _userManager.GetUsersInRoleAsync("SuperAdmin");
+            if (superAdmins.Count <= 1)
+            {
+                throw new ValidationException("Sistemdəki yeganə SuperAdmin istifadəçisini silmək mümkün deyil.");
+            }
+        }
+
+        var activeTokens = await _context.RefreshTokens
+            .Where(r => r.UserId == user.Id)
+            .ToListAsync(cancellationToken);
+
+        if (activeTokens.Count > 0)
+        {
+            _context.RefreshTokens.RemoveRange(activeTokens);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            throw new ValidationException(result.Errors.Select(e => e.Description).ToList());
+        }
+    }
+
     private async Task<List<string>> GetPermissionsForRolesAsync(IEnumerable<string> roles)
     {
         var permissionSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

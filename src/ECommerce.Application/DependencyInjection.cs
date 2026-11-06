@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<Interfaces.IReviewService, Services.ReviewService>();
         services.AddScoped<Interfaces.IWishlistService, Services.WishlistService>();
         services.AddScoped<Interfaces.ICouponService, Services.CouponService>();
+        services.AddScoped<Interfaces.INewsletterService, Services.NewsletterService>();
 
         return services;
     }
