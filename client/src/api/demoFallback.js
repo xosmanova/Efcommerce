@@ -44,18 +44,43 @@ export const getFallbackProducts = (params = {}) => {
     list = list.filter((p) => p.stockQuantity > 0);
   }
 
-  // 5. Sorting
-  const sortBy = params.sortBy || 'newest';
-  if (sortBy === 'price_asc') {
-    list.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price));
-  } else if (sortBy === 'price_desc') {
-    list.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price));
-  } else if (sortBy === 'name_asc') {
+  // 5. Sorting (Supports both 'price_asc'/'price_desc' and 'price' + 'asc'/'desc')
+  const rawSortBy = (params.sortBy || 'newest').toString().toLowerCase();
+  const rawSortDir = (params.sortDirection || '').toString().toLowerCase();
+
+  const getEffectivePrice = (p) => {
+    if (p.discountPrice !== undefined && p.discountPrice !== null && Number(p.discountPrice) > 0) {
+      return Number(p.discountPrice);
+    }
+    return Number(p.price || 0);
+  };
+
+  const isPriceAsc =
+    rawSortBy === 'price_asc' ||
+    (rawSortBy === 'price' && (rawSortDir === 'asc' || !rawSortDir));
+  const isPriceDesc =
+    rawSortBy === 'price_desc' ||
+    (rawSortBy === 'price' && rawSortDir === 'desc');
+
+  const isNameAsc =
+    rawSortBy === 'name_asc' ||
+    (rawSortBy === 'name' && (rawSortDir === 'asc' || !rawSortDir));
+  const isNameDesc =
+    rawSortBy === 'name_desc' ||
+    (rawSortBy === 'name' && rawSortDir === 'desc');
+
+  if (isPriceDesc) {
+    list.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
+  } else if (isPriceAsc) {
+    list.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
+  } else if (isNameAsc) {
     list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  } else if (sortBy === 'popularity') {
+  } else if (isNameDesc) {
+    list.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+  } else if (rawSortBy === 'popularity') {
     list.sort((a, b) => (b.stockQuantity || 0) - (a.stockQuantity || 0));
   } else {
-    // 'newest'
+    // 'newest' (highest ID first)
     list.sort((a, b) => (b.id || 0) - (a.id || 0));
   }
 

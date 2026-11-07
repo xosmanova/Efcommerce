@@ -145,7 +145,7 @@ export const ProductDetailPage = () => {
         {/* Left: Product Image */}
         <div className="aspect-square bg-slate-50 dark:bg-slate-800/50 rounded-3xl flex items-center justify-center p-8 relative border border-slate-100 dark:border-slate-800 overflow-hidden">
           {product.imageUrl ? (
-            <img src={getImageUrl(product.imageUrl)} alt={product.name} className="max-w-full max-h-full object-contain" />
+            <img src={getImageUrl(product.imageUrl)} alt={product.name} onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800"; }} className="max-w-full max-h-full object-contain" />
           ) : (
             <ShoppingBag className="w-28 h-28 text-slate-300 dark:text-slate-600" />
           )}

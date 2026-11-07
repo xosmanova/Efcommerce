@@ -25,6 +25,11 @@ export const ProductCard = ({ product }) => {
             <img
               src={getImageUrl(product.imageUrl)}
               alt={product.name}
+              loading="lazy"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
+              }}
               className="max-w-full max-h-full object-contain group-hover:scale-105 transition duration-300"
             />
           ) : (
