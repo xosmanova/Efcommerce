@@ -71,13 +71,6 @@ export const LoginPage = () => {
           </p>
         </div>
 
-        {/* Demo Credentials Helper Pill */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-600 dark:text-slate-300 space-y-1">
-          <p className="font-semibold text-slate-700 dark:text-slate-200">Demo Accounts:</p>
-          <p><span className="font-medium text-slate-800 dark:text-white">SuperAdmin:</span> superadmin@shop.com / Admin123!</p>
-          <p><span className="font-medium text-slate-800 dark:text-white">Customer:</span> customer@shop.com / Customer123!</p>
-        </div>
-
         <form className="mt-6 space-y-5" onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
