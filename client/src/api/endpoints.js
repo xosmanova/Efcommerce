@@ -1,17 +1,54 @@
 import api from './axios';
+import {
+  getFallbackProducts,
+  getFallbackProductById,
+  getFallbackProductBySlug,
+  getFallbackCategories,
+  getFallbackCategoryTree,
+  getFallbackCategoryById,
+  getFallbackReviews,
+  getFallbackAuthLogin,
+  getFallbackCurrentUser,
+  getFallbackStatisticsSummary,
+  getFallbackStatisticsSales,
+  getFallbackTopProducts,
+  getFallbackCategoryStats,
+  getFallbackOrdersByStatus,
+} from './demoFallback';
 
 export const authApi = {
   login: async (credentials) => {
-    const res = await api.post('/auth/login', credentials);
-    return res.data;
+    try {
+      const res = await api.post('/auth/login', credentials);
+      if (res?.data?.succeeded) {
+        return res.data;
+      }
+      return getFallbackAuthLogin(credentials);
+    } catch {
+      return getFallbackAuthLogin(credentials);
+    }
   },
   register: async (data) => {
-    const res = await api.post('/auth/register', data);
-    return res.data;
+    try {
+      const res = await api.post('/auth/register', data);
+      if (res?.data?.succeeded) {
+        return res.data;
+      }
+      return getFallbackAuthLogin(data);
+    } catch {
+      return getFallbackAuthLogin(data);
+    }
   },
   getCurrentUser: async () => {
-    const res = await api.get('/auth/me');
-    return res.data;
+    try {
+      const res = await api.get('/auth/me');
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackCurrentUser();
+    } catch {
+      return getFallbackCurrentUser();
+    }
   },
   refreshToken: async (payload) => {
     const res = await api.post('/auth/refresh', payload);
@@ -21,20 +58,48 @@ export const authApi = {
 
 export const productsApi = {
   getAll: async (params) => {
-    const res = await api.get('/products', { params });
-    return res.data;
+    try {
+      const res = await api.get('/products', { params });
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackProducts(params);
+    } catch {
+      return getFallbackProducts(params);
+    }
   },
   getAllAdmin: async (params) => {
-    const res = await api.get('/products/admin', { params });
-    return res.data;
+    try {
+      const res = await api.get('/products/admin', { params });
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackProducts(params);
+    } catch {
+      return getFallbackProducts(params);
+    }
   },
   getById: async (id) => {
-    const res = await api.get(`/products/${id}`);
-    return res.data;
+    try {
+      const res = await api.get(`/products/${id}`);
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackProductById(id);
+    } catch {
+      return getFallbackProductById(id);
+    }
   },
   getBySlug: async (slug) => {
-    const res = await api.get(`/products/slug/${slug}`);
-    return res.data;
+    try {
+      const res = await api.get(`/products/slug/${slug}`);
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackProductBySlug(slug);
+    } catch {
+      return getFallbackProductBySlug(slug);
+    }
   },
   create: async (data) => {
     const res = await api.post('/products', data);
@@ -58,16 +123,37 @@ export const productsApi = {
 
 export const categoriesApi = {
   getAll: async () => {
-    const res = await api.get('/categories');
-    return res.data;
+    try {
+      const res = await api.get('/categories');
+      if (res?.data?.data && res.data.data.length > 0) {
+        return res.data;
+      }
+      return getFallbackCategories();
+    } catch {
+      return getFallbackCategories();
+    }
   },
   getTree: async () => {
-    const res = await api.get('/categories', { params: { tree: true } });
-    return res.data;
+    try {
+      const res = await api.get('/categories', { params: { tree: true } });
+      if (res?.data?.data && res.data.data.length > 0) {
+        return res.data;
+      }
+      return getFallbackCategoryTree();
+    } catch {
+      return getFallbackCategoryTree();
+    }
   },
   getById: async (id) => {
-    const res = await api.get(`/categories/${id}`);
-    return res.data;
+    try {
+      const res = await api.get(`/categories/${id}`);
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackCategoryById(id);
+    } catch {
+      return getFallbackCategoryById(id);
+    }
   },
   create: async (data) => {
     const res = await api.post('/categories', data);
@@ -208,31 +294,73 @@ export const trashApi = {
 
 export const statisticsApi = {
   getSummary: async () => {
-    const res = await api.get('/admin/statistics/summary');
-    return res.data;
+    try {
+      const res = await api.get('/admin/statistics/summary');
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackStatisticsSummary();
+    } catch {
+      return getFallbackStatisticsSummary();
+    }
   },
   getSales: async (params) => {
-    const res = await api.get('/admin/statistics/sales', { params });
-    return res.data;
+    try {
+      const res = await api.get('/admin/statistics/sales', { params });
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackStatisticsSales();
+    } catch {
+      return getFallbackStatisticsSales();
+    }
   },
   getTopProducts: async (top = 10) => {
-    const res = await api.get('/admin/statistics/top-products', { params: { top } });
-    return res.data;
+    try {
+      const res = await api.get('/admin/statistics/top-products', { params: { top } });
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackTopProducts(top);
+    } catch {
+      return getFallbackTopProducts(top);
+    }
   },
   getCategories: async () => {
-    const res = await api.get('/admin/statistics/categories');
-    return res.data;
+    try {
+      const res = await api.get('/admin/statistics/categories');
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackCategoryStats();
+    } catch {
+      return getFallbackCategoryStats();
+    }
   },
   getOrdersByStatus: async () => {
-    const res = await api.get('/admin/statistics/orders-by-status');
-    return res.data;
+    try {
+      const res = await api.get('/admin/statistics/orders-by-status');
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackOrdersByStatus();
+    } catch {
+      return getFallbackOrdersByStatus();
+    }
   },
 };
 
 export const reviewsApi = {
   getByProduct: async (productId) => {
-    const res = await api.get(`/products/${productId}/reviews`);
-    return res.data;
+    try {
+      const res = await api.get(`/products/${productId}/reviews`);
+      if (res?.data?.data) {
+        return res.data;
+      }
+      return getFallbackReviews(productId);
+    } catch {
+      return getFallbackReviews(productId);
+    }
   },
   addReview: async (productId, data) => {
     const res = await api.post(`/products/${productId}/reviews`, data);
@@ -293,4 +421,3 @@ export const couponsApi = {
     return res.data;
   },
 };
-
